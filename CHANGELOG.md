@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/ahincho/nova-java-01-api-standard/compare/v1.0.1...v1.0.2) (2026-09-27)
+
+
+### Documentation
+
+* add a README and adopt EPL-2.0 ([c87975c](https://github.com/ahincho/nova-java-01-api-standard/commit/c87975c3eef88543aecef7ecd4fbe886df07f185))
+
 ## [1.0.1](https://github.com/ahincho/nova-java-api-standard/compare/v1.0.0...v1.0.1) (2026-07-13)
 
 
