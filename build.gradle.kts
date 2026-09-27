@@ -93,7 +93,7 @@ publishing {
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/ahincho/nova-java-api-standard")
+            url = uri("https://maven.pkg.github.com/ahincho/nova-java-01-api-standard")
             credentials {
                 username = System.getenv("GITHUB_ACTOR")
                 password = System.getenv("GITHUB_TOKEN")

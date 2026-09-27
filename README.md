@@ -29,7 +29,7 @@ authenticated with a token that has `read:packages`.
 ```kotlin
 repositories {
     maven {
-        url = uri("https://maven.pkg.github.com/ahincho/nova-java-api-standard")
+        url = uri("https://maven.pkg.github.com/ahincho/nova-java-01-api-standard")
         credentials {
             username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
             password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
@@ -76,8 +76,8 @@ SortCriteria sort = new SortCriteria("createdAt", SortDirection.DESC);
 This library stays framework-free on purpose. To wire it into an
 application use the adapter for your stack:
 
-- [nova-java-commons-spring-boot-starter](https://github.com/ahincho/nova-java-commons-spring-boot-starter)
-- [nova-java-api-standard-quarkus-extension](https://github.com/ahincho/nova-java-api-standard-quarkus-extension)
+- [nova-java-commons-spring-boot-starter](https://github.com/ahincho/nova-java-08-commons-spring-boot-starter)
+- [nova-java-api-standard-quarkus-extension](https://github.com/ahincho/nova-java-10-api-standard-quarkus-extension)
 
 ## Requirements
 
