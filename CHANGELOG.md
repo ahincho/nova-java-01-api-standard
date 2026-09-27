@@ -35,7 +35,7 @@
 * **ci:** restore original publish-on-tag format (no with, secrets: inherit) ([b97646a](https://github.com/ahincho/nova-java-api-standard/commit/b97646af7d73a11d23c9e321266514a49ccec04d))
 * **ci:** restore publish-on-tag with reusable workflow + explicit secrets ([c117662](https://github.com/ahincho/nova-java-api-standard/commit/c11766275388c30c454cbc68a81da22c6f23d3f5))
 * **ci:** restore release-please workflow with explicit permissions and inputs ([2b094a0](https://github.com/ahincho/nova-java-api-standard/commit/2b094a0280c607a3363a0594a3698f8ceabfb6d0))
-* **ci:** update reusable workflow refs from OWNER/galaxy-training-devops to ahincho/nova-devops ([ffa5791](https://github.com/ahincho/nova-java-api-standard/commit/ffa5791558c4887f3505c0ce7b6e5e21ca70ab35))
+* **ci:** update reusable workflow refs to ahincho/nova-devops ([ffa5791](https://github.com/ahincho/nova-java-api-standard/commit/ffa5791558c4887f3505c0ce7b6e5e21ca70ab35))
 * **ci:** use PAT fallback for release-please to enable tag-triggered workflows ([17385e7](https://github.com/ahincho/nova-java-api-standard/commit/17385e763b71ebdab6c00f179a333d7fbe765a3e))
 * **gradle:** remove dirty closure (incompatible with Kotlin DSL in Gradle 9.6.1) ([e938f73](https://github.com/ahincho/nova-java-api-standard/commit/e938f73c157e6dc42713d337cf971acb8b20756a))
 * **gradle:** use explicit type in dirty closure for Gradle 9.6.1 compatibility ([56cc93e](https://github.com/ahincho/nova-java-api-standard/commit/56cc93ed25dd2633ae659a7e0ac4bab0cc17669e))
@@ -61,7 +61,7 @@
 
 * **ci:** add permissions and explicit inputs to release-please workflow ([14feaef](https://github.com/ahincho/nova-java-spring-boot-api-standard/commit/14feaefe4b683a4ca3e81a72da0b39be7dd6dfc7))
 * **ci:** restore release-please workflow with explicit permissions and inputs ([2b094a0](https://github.com/ahincho/nova-java-spring-boot-api-standard/commit/2b094a0280c607a3363a0594a3698f8ceabfb6d0))
-* **ci:** update reusable workflow refs from OWNER/galaxy-training-devops to ahincho/nova-devops ([ffa5791](https://github.com/ahincho/nova-java-spring-boot-api-standard/commit/ffa5791558c4887f3505c0ce7b6e5e21ca70ab35))
+* **ci:** update reusable workflow refs to ahincho/nova-devops ([ffa5791](https://github.com/ahincho/nova-java-spring-boot-api-standard/commit/ffa5791558c4887f3505c0ce7b6e5e21ca70ab35))
 
 
 ### Documentation
