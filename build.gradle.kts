@@ -77,6 +77,8 @@ dependencyCheck {
     // pruebas no viajan con la librería, y el package-lock.json es de los hooks de commit, no del código.
     scanConfigurations.set(listOf("compileClasspath", "runtimeClasspath"))
     scanSet.setFrom(file("src/main/java"))
+    analyzers.nodeEnabled.set(false)
+    analyzers.nodeAuditEnabled.set(false)
 }
 
 pitest {
