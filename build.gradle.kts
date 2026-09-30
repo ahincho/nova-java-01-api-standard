@@ -73,6 +73,10 @@ dependencyCheck {
     // and an empty NVD key (slower updates, acceptable for local dev).
     failBuildOnCVSS = (System.getenv("NOVA_OWASP_FAIL_ON_CVSS") ?: "11").toFloat()
     nvd.apiKey = System.getenv("NVD_API_KEY") ?: ""
+    // Solo lo que recibe el consumidor, como en el toolchain de Nova (ADR-044): Checkstyle, PIT y las
+    // pruebas no viajan con la librería, y el package-lock.json es de los hooks de commit, no del código.
+    scanConfigurations.set(listOf("compileClasspath", "runtimeClasspath"))
+    scanSet.setFrom(file("src/main/java"))
 }
 
 pitest {
