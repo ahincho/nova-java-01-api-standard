@@ -9,18 +9,19 @@ package pe.edu.nova.java.libs.api.standard.error;
  * como RFC 7807, es otra implementación de este puerto; también se puede envolver el de Nova para
  * sumar un header.
  * <p>
- * La regla del 5xx pasa a ser de quien escribe el puerto: el error trae el proveedor y la causa, que
- * son solo para el log. Con un serializador propio, el código y el mensaje de un 5xx se toman del
- * {@link ErrorCatalog}, y no del error.
+ * Recibe el {@link SanitizedFailure} con el status, el código y el mensaje ya decididos por el
+ * {@link ErrorStatusMapper} y el {@link ErrorCatalog}: en un 5xx, el código y el mensaje genéricos del
+ * status. No recibe el proveedor ni la causa, que van solo al log, así que un serializador propio no
+ * puede revelarlos. Lo alcanzan igual un error de Nova y la excepción de un framework.
  */
 @FunctionalInterface
 public interface ErrorSerializer {
 
     /**
-     * Construye la respuesta de un error.
+     * Construye la respuesta de un fallo.
      *
-     * @param error el error
+     * @param failure el fallo saneado, con el status, el código y el mensaje decididos
      * @return el status, el cuerpo y los headers que la integración escribe
      */
-    SerializedError serialize(NovaError error);
+    SerializedError serialize(SanitizedFailure failure);
 }

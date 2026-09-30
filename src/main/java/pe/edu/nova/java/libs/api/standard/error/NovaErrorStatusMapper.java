@@ -30,13 +30,13 @@ public final class NovaErrorStatusMapper implements ErrorStatusMapper {
     /**
      * Retorna el status de la tabla para la capa y el tipo del error.
      *
-     * @param error el error
+     * @param type el tipo del error
      * @return el status HTTP
      */
     @Override
-    public int statusOf(NovaError error) {
+    public int statusOf(ErrorType type) {
         // El switch es exhaustivo sobre los tipos sellados: un tipo nuevo no compila hasta tener su fila.
-        return switch (error.type()) {
+        return switch (type) {
             case DomainError.Type.NOT_FOUND -> 404;
             case DomainError.Type.CONFLICT -> 409;
             case DomainError.Type.RULE_VIOLATION -> 422;

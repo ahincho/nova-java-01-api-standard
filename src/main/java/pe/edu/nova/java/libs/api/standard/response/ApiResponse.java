@@ -97,8 +97,8 @@ public record ApiResponse<T>(
      * <p>
      * La entrada lleva siempre el código {@code ERROR}, y se conserva así por compatibilidad. Para
      * responder un {@link pe.edu.nova.java.libs.api.standard.error.NovaError} conviene
-     * {@link pe.edu.nova.java.libs.api.standard.error.ErrorSerializer}, que pone el código del
-     * catálogo de la plataforma y el {@code traceId} (ADR-031).
+     * {@link pe.edu.nova.java.libs.api.standard.error.ErrorPorts}, que pone el código del catálogo de
+     * la plataforma y el {@code traceId} (ADR-031).
      *
      * @param status  código de estado HTTP
      * @param message mensaje de error
@@ -114,7 +114,7 @@ public record ApiResponse<T>(
      * Crea una respuesta de error con status y lista de errores.
      * <p>
      * Para responder un {@link pe.edu.nova.java.libs.api.standard.error.NovaError} conviene
-     * {@link pe.edu.nova.java.libs.api.standard.error.ErrorSerializer} (ADR-031).
+     * {@link pe.edu.nova.java.libs.api.standard.error.ErrorPorts} (ADR-031).
      *
      * @param status código de estado HTTP
      * @param errors lista de errores

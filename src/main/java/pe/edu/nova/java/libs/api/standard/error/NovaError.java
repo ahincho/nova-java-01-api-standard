@@ -24,6 +24,10 @@ import java.util.Optional;
  * </ul>
  * El proveedor ({@link #upstream()}) y la causa nunca llegan al cliente: son para el log.
  * <p>
+ * Los puertos tampoco reciben este error. Lo ve solo el núcleo, que en Java es el handler de la
+ * integración: lo registra en el log una sola vez, con el proveedor y la causa, y {@link ErrorPorts} les
+ * pasa a los puertos un {@link SanitizedFailure}, que no los trae.
+ * <p>
  * El {@code traceId} se toma en el constructor, de las {@link TraceIdSource} registradas, y no al
  * responder, cuando el contexto de la petición puede haberse perdido.
  */

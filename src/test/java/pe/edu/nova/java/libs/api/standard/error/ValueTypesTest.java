@@ -33,11 +33,14 @@ class ValueTypesTest {
     }
 
     @Test
-    void aFieldErrorNeedsItsFieldAndMessage() {
-        assertEquals("field es obligatorio",
-                assertThrows(IllegalArgumentException.class, () -> FieldError.of(" ", "Mensaje")).getMessage());
-        assertEquals("field es obligatorio",
-                assertThrows(IllegalArgumentException.class, () -> FieldError.of(null, "Mensaje")).getMessage());
+    void aFieldErrorWithoutFieldIsOfTheWholeObject() {
+        // ADR-031: un error de validación de todo el objeto lleva el campo vacío.
+        assertEquals("", FieldError.of(" ", "Mensaje").field());
+        assertEquals("", FieldError.of(null, "Mensaje").field());
+    }
+
+    @Test
+    void aFieldErrorNeedsItsMessage() {
         assertEquals("message es obligatorio",
                 assertThrows(IllegalArgumentException.class, () -> FieldError.of("email", null)).getMessage());
         assertEquals("message es obligatorio",

@@ -83,18 +83,28 @@ throw ApplicationError.rateLimited("Superaste el límite", Duration.ofSeconds(30
 throw InfrastructureError.timeout("payments", exception);
 ```
 
-The framework adapter turns the error into the envelope and its headers:
+The framework adapter logs the error once, with its upstream and cause, and
+then turns it into the envelope and its headers:
 
 ```java
-SerializedError response = new NovaErrorSerializer().serialize(error);
+SerializedError response = ErrorPorts.defaults().respond(error);
 // the timeout above: status 504, an ApiResponse with GATEWAY_TIMEOUT and the traceId;
 // the rate limit: status 429 and Retry-After: 30
 ```
 
 `ErrorStatusMapper` picks the status, `ErrorCatalog` the code and message
 the client sees, and `ErrorSerializer` the body and headers. Nova ships a
-default for each, and an organization replaces or wraps any of them without
-forking.
+default for each, and an organization such as UTP replaces or wraps any of
+them from its own profile without forking, with
+`new ErrorPorts(mapper, catalog, serializer)`.
+
+The catalog and the serializer never see the full error. They get a
+`SanitizedFailure`: layer, type, status, code, message, field errors,
+`retryAfter` and `traceId`, without the upstream or the cause, and with the
+generic message in a 5xx. A port written by an organization cannot leak what
+it never receives. A framework exception that already has its status enters
+through `SanitizedFailure.ofStatus`: a 4xx is `application`, a 502, 503 or 504
+is `infrastructure`, and any other 5xx is `platform`.
 
 What the defaults never show: a 5xx carries only the generic code of its
 status and the `traceId`, never the error's own code, its message or the

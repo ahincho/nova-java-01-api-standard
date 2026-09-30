@@ -23,11 +23,11 @@ import pe.edu.nova.java.libs.api.standard.response.ApiResponse;
 
 class NovaErrorSerializerTest {
 
-    private final ErrorSerializer serializer = new NovaErrorSerializer();
+    private final ErrorPorts ports = ErrorPorts.defaults();
 
     @Test
     void theBodyIsAFailedEnvelopeWithTheHttpStatus() {
-        SerializedError serialized = serializer.serialize(DomainError.notFound("ORDER_NOT_FOUND", "El pedido 42 no existe"));
+        SerializedError serialized = ports.respond(DomainError.notFound("ORDER_NOT_FOUND", "El pedido 42 no existe"));
         ApiResponse<?> body = bodyOf(serialized);
 
         assertEquals(404, serialized.status());
@@ -40,7 +40,7 @@ class NovaErrorSerializerTest {
     @ParameterizedTest(name = "{0} -> {1} {2}")
     @MethodSource("pe.edu.nova.java.libs.api.standard.error.AdrTable#rows")
     void eachTypeAnswersWithTheStatusAndCodeOfTheAdr(NovaError error, int status, String code) {
-        SerializedError serialized = serializer.serialize(error);
+        SerializedError serialized = ports.respond(error);
 
         assertEquals(status, serialized.status());
         assertEquals(status, bodyOf(serialized).status());
@@ -53,7 +53,7 @@ class NovaErrorSerializerTest {
                 FieldError.of("email", "El correo no es válido"),
                 FieldError.of("name", "REQUIRED", "El nombre es obligatorio")));
 
-        ApiResponse<?> body = bodyOf(serializer.serialize(error));
+        ApiResponse<?> body = bodyOf(ports.respond(error));
 
         // Un campo sin código propio toma el del catálogo; uno con código conserva el suyo.
         assertEquals(List.of(
@@ -67,12 +67,12 @@ class NovaErrorSerializerTest {
                 List.of(FieldError.of("quantity", "La cantidad debe ser positiva")));
 
         assertEquals(List.of(ApiError.of("INVALID_ORDER", "La cantidad debe ser positiva", "quantity")),
-                bodyOf(serializer.serialize(error)).errors());
+                bodyOf(ports.respond(error)).errors());
     }
 
     @Test
     void invalidInputWithoutFieldsHasASingleEntryWithItsMessage() {
-        SerializedError serialized = serializer.serialize(ApplicationError.invalidInput("El cuerpo no es legible", null));
+        SerializedError serialized = ports.respond(ApplicationError.invalidInput("El cuerpo no es legible", null));
 
         assertEquals(400, serialized.status());
         assertEquals("BAD_REQUEST", onlyCodeOf(serialized));
@@ -82,11 +82,11 @@ class NovaErrorSerializerTest {
     @Test
     void fieldErrorsNeverReachAServerError() {
         // Un mapeador propio que lleve INVALID_INPUT a 500 no puede filtrar el detalle por campo.
-        ErrorSerializer toServerError = new NovaErrorSerializer(error -> 500, new NovaErrorCatalog());
+        ErrorPorts toServerError = new ErrorPorts(type -> 500, new NovaErrorCatalog(), new NovaErrorSerializer());
         ApplicationError error = ApplicationError.invalidInput("Campos inválidos",
                 List.of(FieldError.of("cardNumber", "El número 4111 no es válido")));
 
-        SerializedError serialized = toServerError.serialize(error);
+        SerializedError serialized = toServerError.respond(error);
 
         assertEquals("INTERNAL_SERVER_ERROR", onlyCodeOf(serialized));
         assertEquals("Error interno del servidor", onlyMessageOf(serialized));
@@ -96,9 +96,9 @@ class NovaErrorSerializerTest {
     @ParameterizedTest(name = "status {0}")
     @ValueSource(ints = {400, 499})
     void fieldErrorsAreListedInTheWholeClientRange(int status) {
-        ErrorSerializer atStatus = new NovaErrorSerializer(error -> status, new NovaErrorCatalog());
+        ErrorPorts atStatus = new ErrorPorts(type -> status, new NovaErrorCatalog(), new NovaErrorSerializer());
 
-        List<ApiError> entries = bodyOf(atStatus.serialize(twoInvalidFields())).errors();
+        List<ApiError> entries = bodyOf(atStatus.respond(twoInvalidFields())).errors();
 
         assertEquals(List.of("email", "name"), entries.stream().map(ApiError::field).toList());
     }
@@ -107,9 +107,9 @@ class NovaErrorSerializerTest {
     @ValueSource(ints = {399, 599})
     void fieldErrorsAreNotListedOutsideTheClientRange(int status) {
         // Los bordes del rango: solo un 4xx muestra el detalle de la entrada.
-        ErrorSerializer atStatus = new NovaErrorSerializer(error -> status, new NovaErrorCatalog());
+        ErrorPorts atStatus = new ErrorPorts(type -> status, new NovaErrorCatalog(), new NovaErrorSerializer());
 
-        List<ApiError> entries = bodyOf(atStatus.serialize(twoInvalidFields())).errors();
+        List<ApiError> entries = bodyOf(atStatus.respond(twoInvalidFields())).errors();
 
         assertEquals(1, entries.size());
         assertNull(entries.getFirst().field());
@@ -131,7 +131,7 @@ class NovaErrorSerializerTest {
         "PT2M, 120"
     })
     void retryAfterBecomesAHeaderInWholeSecondsRoundedUp(Duration retryAfter, String header) {
-        SerializedError serialized = serializer.serialize(ApplicationError.rateLimited("Superaste el límite", retryAfter));
+        SerializedError serialized = ports.respond(ApplicationError.rateLimited("Superaste el límite", retryAfter));
 
         assertEquals(Map.of("Retry-After", header), serialized.headers());
     }
@@ -140,7 +140,7 @@ class NovaErrorSerializerTest {
     void aNegativeWaitStillAnswersTheErrorWithoutTheHeader() {
         // El 429 se responde igual: una espera calculada mal no puede convertirlo en un 500.
         SerializedError serialized =
-                serializer.serialize(ApplicationError.rateLimited("Superaste el límite", Duration.ofSeconds(-3)));
+                ports.respond(ApplicationError.rateLimited("Superaste el límite", Duration.ofSeconds(-3)));
 
         assertEquals(429, serialized.status());
         assertEquals("TOO_MANY_REQUESTS", onlyCodeOf(serialized));
@@ -149,14 +149,14 @@ class NovaErrorSerializerTest {
 
     @Test
     void anErrorThatCannotBeRetriedHasNoHeaders() {
-        assertTrue(serializer.serialize(DomainError.conflict("El pedido está cancelado")).headers().isEmpty());
-        assertTrue(serializer.serialize(ApplicationError.rateLimited("Superaste el límite", null)).headers().isEmpty());
+        assertTrue(ports.respond(DomainError.conflict("El pedido está cancelado")).headers().isEmpty());
+        assertTrue(ports.respond(ApplicationError.rateLimited("Superaste el límite", null)).headers().isEmpty());
     }
 
     @Test
     void unavailableCarriesRetryAfterToo() {
         SerializedError serialized =
-                serializer.serialize(InfrastructureError.unavailable("pagos", null, Duration.ofSeconds(5)));
+                ports.respond(InfrastructureError.unavailable("pagos", null, Duration.ofSeconds(5)));
 
         assertEquals(503, serialized.status());
         assertEquals(Map.of("Retry-After", "5"), serialized.headers());
@@ -167,9 +167,9 @@ class NovaErrorSerializerTest {
         InfrastructureError error =
                 InfrastructureError.timeout("pagos-core", new SocketTimeoutException("pagos-core.interno:8443"));
 
-        ApiResponse<?> body = bodyOf(serializer.serialize(error));
+        ApiResponse<?> body = bodyOf(ports.respond(error));
 
-        assertEquals(List.of(ApiError.of("GATEWAY_TIMEOUT", "Error interno del servidor")), body.errors());
+        assertEquals(List.of(ApiError.of("GATEWAY_TIMEOUT", "Una dependencia no respondió a tiempo")), body.errors());
         assertFalse(body.toString().contains("pagos"), body::toString);
         assertTrue(body.metadata().customFields().isEmpty());
     }
@@ -179,14 +179,14 @@ class NovaErrorSerializerTest {
         DomainError error = FakeTraceIdSource.withTraceId("4bf92f3577b34da6", () -> DomainError.notFound("No existe"));
 
         // Al responder ya no hay petición en curso: vale lo que se capturó al nacer.
-        assertEquals("4bf92f3577b34da6", bodyOf(serializer.serialize(error)).metadata().traceId());
+        assertEquals("4bf92f3577b34da6", bodyOf(ports.respond(error)).metadata().traceId());
     }
 
     @Test
     void theTraceIdOfBirthWinsOverTheOneAtResponseTime() {
         DomainError error = FakeTraceIdSource.withTraceId("al-nacer", () -> DomainError.notFound("No existe"));
 
-        SerializedError serialized = FakeTraceIdSource.withTraceId("al-responder", () -> serializer.serialize(error));
+        SerializedError serialized = FakeTraceIdSource.withTraceId("al-responder", () -> ports.respond(error));
 
         assertEquals("al-nacer", bodyOf(serialized).metadata().traceId());
     }
@@ -196,25 +196,29 @@ class NovaErrorSerializerTest {
         // Nació fuera de la petición, por ejemplo en otro hilo; al responder el contexto sí está.
         DomainError error = DomainError.notFound("No existe");
 
-        SerializedError serialized = FakeTraceIdSource.withTraceId("al-responder", () -> serializer.serialize(error));
+        SerializedError serialized = FakeTraceIdSource.withTraceId("al-responder", () -> ports.respond(error));
 
         assertEquals("al-responder", bodyOf(serialized).metadata().traceId());
     }
 
     @Test
     void withoutAnyTraceTheMetadataStillCarriesOne() {
-        String traceId = bodyOf(serializer.serialize(DomainError.notFound("No existe"))).metadata().traceId();
+        String traceId = bodyOf(ports.respond(DomainError.notFound("No existe"))).metadata().traceId();
 
         assertNotNull(traceId);
         assertFalse(traceId.isBlank());
     }
 
     @Test
-    void theSerializerNeedsBothPorts() {
-        NovaErrorCatalog catalog = new NovaErrorCatalog();
+    void thePortsAreAllRequired() {
         NovaErrorStatusMapper mapper = new NovaErrorStatusMapper();
+        NovaErrorCatalog catalog = new NovaErrorCatalog();
+        NovaErrorSerializer serializer = new NovaErrorSerializer();
 
-        assertThrows(NullPointerException.class, () -> new NovaErrorSerializer(null, catalog));
-        assertThrows(NullPointerException.class, () -> new NovaErrorSerializer(mapper, null));
+        assertThrows(NullPointerException.class, () -> new ErrorPorts(null, catalog, serializer));
+        assertThrows(NullPointerException.class, () -> new ErrorPorts(mapper, null, serializer));
+        assertThrows(NullPointerException.class, () -> new ErrorPorts(mapper, catalog, null));
+        assertThrows(NullPointerException.class, () -> ports.respond((NovaError) null));
+        assertThrows(NullPointerException.class, () -> ports.respond((SanitizedFailure) null));
     }
 }

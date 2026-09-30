@@ -8,7 +8,10 @@
  * {@code PlatformError}, sobre la base común {@code NovaError}. El mapeo a HTTP lo hace la
  * plataforma con tres puertos, cada uno con la implementación por defecto de Nova:
  * {@code ErrorStatusMapper} ({@code NovaErrorStatusMapper}), {@code ErrorCatalog}
- * ({@code NovaErrorCatalog}) y {@code ErrorSerializer} ({@code NovaErrorSerializer}). El
+ * ({@code NovaErrorCatalog}) y {@code ErrorSerializer} ({@code NovaErrorSerializer}).
+ * <p>
+ * Los puertos no reciben el error: reciben un {@code SanitizedFailure}, sin el proveedor ni la causa,
+ * que solo ve el núcleo. {@code ErrorPorts} los junta y fija el orden en que se consultan. El
  * {@code traceId} lo da una {@code TraceIdSource}, que cada integración registra con
  * {@link java.util.ServiceLoader}.
  */

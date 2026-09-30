@@ -13,6 +13,7 @@ import pe.edu.nova.java.libs.api.standard.error.ApplicationError;
 import pe.edu.nova.java.libs.api.standard.error.CatalogEntry;
 import pe.edu.nova.java.libs.api.standard.error.DomainError;
 import pe.edu.nova.java.libs.api.standard.error.ErrorCatalog;
+import pe.edu.nova.java.libs.api.standard.error.ErrorPorts;
 import pe.edu.nova.java.libs.api.standard.error.ErrorSerializer;
 import pe.edu.nova.java.libs.api.standard.error.ErrorStatusMapper;
 import pe.edu.nova.java.libs.api.standard.error.FieldError;
@@ -44,7 +45,7 @@ class ErrorModelPublicApiTest {
                 ApplicationError.rateLimited("Superaste el límite", Duration.ofSeconds(30)),
                 InfrastructureError.timeout("pagos", new SocketTimeoutException("Read timed out")),
                 PlatformError.internal(new IllegalStateException("db-orders-01 caído")));
-        ErrorSerializer serializer = new NovaErrorSerializer(new NovaErrorStatusMapper(), new NovaErrorCatalog());
+        ErrorPorts ports = ErrorPorts.defaults();
 
         List<String> answers = new ArrayList<>();
         for (NovaError error : errors) {
@@ -57,7 +58,7 @@ class ErrorModelPublicApiTest {
             };
             assertEquals(error.layer().label(), layer);
 
-            SerializedError serialized = serializer.serialize(error);
+            SerializedError serialized = ports.respond(error);
             ApiResponse<?> body = assertInstanceOf(ApiResponse.class, serialized.body());
             answers.add(layer + " " + serialized.status() + " " + body.errors().getFirst().code());
         }
@@ -72,13 +73,14 @@ class ErrorModelPublicApiTest {
 
     @Test
     void aServiceReplacesEachPortFromItsOwnPackage() {
-        ErrorStatusMapper allAsBadRequest = error -> 400;
-        ErrorCatalog ownCatalog = (error, status) -> new CatalogEntry("SVC_" + status, "Texto propio");
-        ErrorSerializer plain = error -> new SerializedError(503, "cuerpo propio", Map.of("X-Own", "1"));
+        ErrorStatusMapper allAsBadRequest = type -> 400;
+        ErrorCatalog ownCatalog = failure -> new CatalogEntry("SVC_" + failure.status(), "Texto propio");
+        ErrorSerializer plain = failure -> new SerializedError(503, "cuerpo propio", Map.of("X-Own", "1"));
 
-        SerializedError withOwnPorts = new NovaErrorSerializer(allAsBadRequest, ownCatalog)
-                .serialize(PlatformError.internal("Invariante rota"));
-        SerializedError withOwnSerializer = plain.serialize(DomainError.conflict("Está cancelado"));
+        SerializedError withOwnPorts = new ErrorPorts(allAsBadRequest, ownCatalog, new NovaErrorSerializer())
+                .respond(PlatformError.internal("Invariante rota"));
+        SerializedError withOwnSerializer = new ErrorPorts(new NovaErrorStatusMapper(), new NovaErrorCatalog(), plain)
+                .respond(DomainError.conflict("Está cancelado"));
 
         ApiResponse<?> body = assertInstanceOf(ApiResponse.class, withOwnPorts.body());
         assertEquals(400, withOwnPorts.status());

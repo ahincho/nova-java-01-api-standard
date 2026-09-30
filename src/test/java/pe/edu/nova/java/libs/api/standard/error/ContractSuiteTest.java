@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import pe.edu.nova.java.libs.api.standard.response.ApiResponse;
 
 /**
- * La suite de contrato de ADR-031, al nivel del modelo y del serializador.
+ * La suite de contrato de ADR-031, al nivel del modelo y de los puertos.
  * <p>
  * Los tres stacks corren estos mismos casos. En todos: {@code success: false}, {@code status} igual
  * al HTTP y {@code metadata.traceId} presente, el de la petición en la que nació el error.
@@ -25,7 +25,7 @@ class ContractSuiteTest {
 
     private static final String TRACE_ID = "4bf92f3577b34da6a3ce929d0e0e4736";
 
-    private final ErrorSerializer serializer = new NovaErrorSerializer();
+    private final ErrorPorts ports = ErrorPorts.defaults();
 
     @Test
     void domainNotFoundWithItsOwnCode() {
@@ -81,7 +81,7 @@ class ContractSuiteTest {
         InfrastructureError error = FakeTraceIdSource.withTraceId(TRACE_ID,
                 () -> InfrastructureError.timeout("pagos", new SocketTimeoutException("Read timed out")));
 
-        SerializedError serialized = serializer.serialize(error);
+        SerializedError serialized = ports.respond(error);
 
         assertContract(504, serialized);
         assertEquals("GATEWAY_TIMEOUT", onlyCodeOf(serialized));
@@ -111,13 +111,13 @@ class ContractSuiteTest {
 
     @Test
     void aCatalogOfItsOwnRegisteredByTheService() {
-        ErrorCatalog own = (error, status) -> new CatalogEntry("SVC_" + NovaErrorCatalog.platformCode(status),
+        ErrorCatalog own = failure -> new CatalogEntry("SVC_" + NovaErrorCatalog.platformCode(failure.status()),
                 "Mensaje del catálogo propio");
-        ErrorSerializer withOwnCatalog = new NovaErrorSerializer(new NovaErrorStatusMapper(), own);
+        ErrorPorts withOwnCatalog = new ErrorPorts(new NovaErrorStatusMapper(), own, new NovaErrorSerializer());
         DomainError error = FakeTraceIdSource.withTraceId(TRACE_ID,
                 () -> DomainError.notFound("ORDER_NOT_FOUND", "El pedido 42 no existe"));
 
-        SerializedError serialized = withOwnCatalog.serialize(error);
+        SerializedError serialized = withOwnCatalog.respond(error);
 
         assertContract(404, serialized);
         assertEquals("SVC_NOT_FOUND", onlyCodeOf(serialized));
@@ -126,7 +126,7 @@ class ContractSuiteTest {
 
     /** Crea el error dentro de una petición y lo responde fuera de ella, como una integración. */
     private SerializedError respond(Supplier<NovaError> error) {
-        return serializer.serialize(FakeTraceIdSource.withTraceId(TRACE_ID, error));
+        return ports.respond(FakeTraceIdSource.withTraceId(TRACE_ID, error));
     }
 
     private static void assertContract(int status, SerializedError serialized) {

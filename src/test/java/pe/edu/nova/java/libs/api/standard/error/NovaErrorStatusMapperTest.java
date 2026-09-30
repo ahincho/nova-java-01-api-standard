@@ -16,8 +16,8 @@ class NovaErrorStatusMapperTest {
 
     @ParameterizedTest(name = "{0} -> {1}")
     @MethodSource("pe.edu.nova.java.libs.api.standard.error.AdrTable#rows")
-    void eachLayerAndTypeMapsToTheStatusOfTheAdr(NovaError error, int status, String code) {
-        assertEquals(status, mapper.statusOf(error), error.layer().label() + " " + error.type().name());
+    void eachLayerAndTypeMapsToTheStatusOfTheAdr(NovaError error, int status, String code, String message) {
+        assertEquals(status, mapper.statusOf(error.type()), error.layer().label() + " " + error.type().name());
     }
 
     @Test
@@ -32,11 +32,5 @@ class NovaErrorStatusMapperTest {
         all.addAll(List.of(PlatformError.Type.values()));
 
         assertEquals(all, covered);
-    }
-
-    @Test
-    void theStatusDoesNotDependOnTheOwnCode() {
-        assertEquals(404, mapper.statusOf(DomainError.notFound("ORDER_NOT_FOUND", "El pedido no existe")));
-        assertEquals(409, mapper.statusOf(ApplicationError.conflict("IDEMPOTENCY_KEY_IN_USE", "En curso")));
     }
 }
