@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0](https://github.com/ahincho/nova-java-01-api-standard/compare/v1.0.2...v1.1.0) (2026-10-01)
+
+
+### Features
+
+* add the layered error model of ADR-031 ([824f01c](https://github.com/ahincho/nova-java-01-api-standard/commit/824f01c3809d26e04b04d71a5bf9364fe5554461))
+* hand the error ports a sanitized failure ([a8f08ea](https://github.com/ahincho/nova-java-01-api-standard/commit/a8f08ea693bae098f0a2824ee3ccb447857d0f68))
+
+
+### Bug Fixes
+
+* make ApiMetadata a record so JSON mappers see its fields ([69969f2](https://github.com/ahincho/nova-java-01-api-standard/commit/69969f2b9a149a19c30bc5a8c094bcddf78a09a3))
+
 ## [1.0.2](https://github.com/ahincho/nova-java-01-api-standard/compare/v1.0.1...v1.0.2) (2026-09-27)
 
 
