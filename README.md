@@ -13,6 +13,7 @@ framework adapters live in separate repositories and only wire this in.
 |---|---|---|
 | `response` | `ApiResponse<T>`, `ResponseBuilder` | The envelope every endpoint returns |
 | `error` | `ApiError` | A single machine-readable failure |
+| `error` | `DomainError`, `ApplicationError`, `InfrastructureError`, `PlatformError` on `NovaError`; `ErrorStatusMapper`, `ErrorCatalog`, `ErrorSerializer`; `TraceIdSource` | Errors classified by layer instead of by HTTP status (ADR-031), and the three ports that turn them into a response |
 | `page` | `PageInfo` | Page number, size, totals |
 | `query` | `FilterCriteria`, `FilterOperator`, `SortCriteria`, `SortDirection` | Filtering and sorting read off the query string |
 | `link` | `ApiLink` | HATEOAS links |
@@ -70,6 +71,54 @@ around as strings:
 FilterCriteria filter = new FilterCriteria("status", FilterOperator.EQUALS, "ACTIVE");
 SortCriteria sort = new SortCriteria("createdAt", SortDirection.DESC);
 ```
+
+### Errors by layer
+
+A use case says what went wrong, not which HTTP status that is, so the same
+code runs behind HTTP or behind a queue consumer:
+
+```java
+throw DomainError.notFound("ORDER_NOT_FOUND", "El pedido 42 no existe");
+throw ApplicationError.rateLimited("Superaste el límite", Duration.ofSeconds(30));
+throw InfrastructureError.timeout("payments", exception);
+```
+
+The framework adapter logs the error once, with its upstream and cause, and
+then turns it into the envelope and its headers:
+
+```java
+SerializedError response = ErrorPorts.defaults().respond(error);
+// the timeout above: status 504, an ApiResponse with GATEWAY_TIMEOUT and the traceId;
+// the rate limit: status 429 and Retry-After: 30
+```
+
+`ErrorStatusMapper` picks the status, `ErrorCatalog` the code and message
+the client sees, and `ErrorSerializer` the body and headers. Nova ships a
+default for each, and an organization such as UTP replaces or wraps any of
+them from its own profile without forking, with
+`new ErrorPorts(mapper, catalog, serializer)`.
+
+The catalog and the serializer never see the full error. They get a
+`SanitizedFailure`: layer, type, status, code, message, field errors,
+`retryAfter` and `traceId`, without the upstream or the cause, and with the
+generic message in a 5xx. A port written by an organization cannot leak what
+it never receives. A framework exception that already has its status enters
+through `SanitizedFailure.ofStatus`: a 4xx is `application`, a 502, 503 or 504
+is `infrastructure`, and any other 5xx is `platform`.
+
+What the defaults never show: a 5xx carries only the generic code of its
+status and the `traceId`, never the error's own code, its message or the
+upstream. That is the tradeoff. The client can tell a 503 worth retrying from
+a 500 that is not, but anything more specific means looking the `traceId` up
+in the log.
+
+The `traceId` is taken when the error is built, not when the response is
+written, because by then the request context may be gone. It comes from a
+`TraceIdSource` that the framework adapter registers in
+`META-INF/services`; with none registered the error has no `traceId`.
+
+`ApiResponse.error(...)` still answers with the code `ERROR`, so nothing
+that uses it changes; the catalog codes reach clients through the adapters.
 
 ## Framework adapters
 
