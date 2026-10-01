@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -13,85 +12,32 @@ import java.util.UUID;
  * <p>
  * Usa el patrón Builder para construcción fluida.
  * Si no se establece timestamp o traceId, se generan automáticamente.
+ * <p>
+ * Es un record, como el resto del sobre, para que un mapper JSON como Jackson vea sus campos sin
+ * anotaciones: con accesores sin el prefijo {@code get}, una clase común salía como {@code {}} y el
+ * {@code traceId} nunca llegaba al cliente.
+ *
+ * @param timestamp        instante de creación del metadato
+ * @param traceId          identificador de traza
+ * @param apiVersion       versión de la API (puede ser null)
+ * @param processingTimeMs tiempo de procesamiento en milisegundos (puede ser null)
+ * @param customFields     campos personalizados inmutables
  */
-public final class ApiMetadata {
-
-    /** Instante de creación del metadato. */
-    private final Instant timestamp;
-
-    /** Identificador de traza. */
-    private final String traceId;
-
-    /** Versión de la API (puede ser null). */
-    private final String apiVersion;
-
-    /** Tiempo de procesamiento en milisegundos (puede ser null). */
-    private final Long processingTimeMs;
-
-    /** Campos personalizados inmutables. */
-    private final Map<String, Object> customFields;
+public record ApiMetadata(
+        Instant timestamp,
+        String traceId,
+        String apiVersion,
+        Long processingTimeMs,
+        Map<String, Object> customFields
+) {
 
     /**
-     * Constructor privado con todos los campos.
-     *
-     * @param timestamp        instante de creación
-     * @param traceId          identificador de traza
-     * @param apiVersion       versión de la API
-     * @param processingTimeMs tiempo de procesamiento en milisegundos
-     * @param customFields     campos personalizados
+     * Normaliza los campos personalizados: nunca son null y no se pueden modificar.
      */
-    private ApiMetadata(Instant timestamp, String traceId, String apiVersion,
-                        Long processingTimeMs, Map<String, Object> customFields) {
-        this.timestamp = timestamp;
-        this.traceId = traceId;
-        this.apiVersion = apiVersion;
-        this.processingTimeMs = processingTimeMs;
-        this.customFields = customFields;
-    }
-
-    /**
-     * Retorna el instante de creación del metadato.
-     *
-     * @return instante de creación
-     */
-    public Instant timestamp() {
-        return timestamp;
-    }
-
-    /**
-     * Retorna el identificador de traza.
-     *
-     * @return identificador de traza
-     */
-    public String traceId() {
-        return traceId;
-    }
-
-    /**
-     * Retorna la versión de la API.
-     *
-     * @return versión de la API (puede ser null)
-     */
-    public String apiVersion() {
-        return apiVersion;
-    }
-
-    /**
-     * Retorna el tiempo de procesamiento en milisegundos.
-     *
-     * @return tiempo de procesamiento en milisegundos (puede ser null)
-     */
-    public Long processingTimeMs() {
-        return processingTimeMs;
-    }
-
-    /**
-     * Retorna una vista inmutable de los campos personalizados.
-     *
-     * @return mapa inmutable de campos personalizados
-     */
-    public Map<String, Object> customFields() {
-        return customFields;
+    public ApiMetadata {
+        customFields = customFields == null || customFields.isEmpty()
+                ? Map.of()
+                : Collections.unmodifiableMap(new LinkedHashMap<>(customFields));
     }
 
     /**
@@ -100,13 +46,7 @@ public final class ApiMetadata {
      * @return nueva instancia de ApiMetadata con valores por defecto
      */
     public static ApiMetadata defaults() {
-        return new ApiMetadata(
-                Instant.now(),
-                UUID.randomUUID().toString(),
-                null,
-                null,
-                Map.of()
-        );
+        return new ApiMetadata(Instant.now(), UUID.randomUUID().toString(), null, null, Map.of());
     }
 
     /**
@@ -116,22 +56,6 @@ public final class ApiMetadata {
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ApiMetadata that)) return false;
-        return Objects.equals(timestamp, that.timestamp)
-                && Objects.equals(traceId, that.traceId)
-                && Objects.equals(apiVersion, that.apiVersion)
-                && Objects.equals(processingTimeMs, that.processingTimeMs)
-                && Objects.equals(customFields, that.customFields);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(timestamp, traceId, apiVersion, processingTimeMs, customFields);
     }
 
     @Override
@@ -248,10 +172,7 @@ public final class ApiMetadata {
         public ApiMetadata build() {
             Instant ts = this.timestamp != null ? this.timestamp : Instant.now();
             String tid = this.traceId != null ? this.traceId : UUID.randomUUID().toString();
-            Map<String, Object> fields = customFields.isEmpty()
-                    ? Map.of()
-                    : Collections.unmodifiableMap(new LinkedHashMap<>(customFields));
-            return new ApiMetadata(ts, tid, apiVersion, processingTimeMs, fields);
+            return new ApiMetadata(ts, tid, apiVersion, processingTimeMs, customFields);
         }
     }
 }
